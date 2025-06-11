@@ -170,3 +170,125 @@ input[type="text"]:focus {
     font-size: 0.9em;
     color: #777;
 }
+
+/* --- Drag and Drop Question Styles --- */
+.dad-container {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    padding: 15px; /* Increased padding */
+    border: 1px solid #c5c5c5; /* Slightly darker border */
+    border-radius: 8px; /* Consistent with .container */
+    background-color: #fdfdfd; /* Slightly off-white */
+    gap: 20px; /* Adds space between draggable and droptarget sections */
+}
+
+.draggable-section, .droptarget-section {
+    flex: 1; /* Allow sections to grow equally */
+    padding: 15px;
+    border: 1px dashed #b0b0b0; /* Darker dashed border */
+    border-radius: 6px; /* Softer radius */
+    background-color: #f9f9f9; /* Light grey background for sections */
+    min-height: 150px; /* Minimum height to ensure visibility */
+}
+
+.draggable-section h3, .droptarget-section h3 {
+    text-align: center;
+    color: #4a4a4a; /* Darker heading color */
+    margin-top: 0;
+    margin-bottom: 15px; /* More space below heading */
+    font-size: 1.2em; /* Slightly larger heading */
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+.draggable-item {
+    padding: 12px 15px; /* More padding */
+    margin: 8px 5px; /* Adjusted margin */
+    background-color: #60a5fa; /* Tailwind blue-400 */
+    color: white;
+    border: 1px solid #3b82f6; /* Tailwind blue-600 */
+    border-radius: 6px;
+    cursor: grab;
+    text-align: center;
+    font-weight: 500;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.draggable-item:hover {
+    background-color: #3b82f6; /* Darker blue on hover */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.draggable-item.dragging { /* Style when item is being dragged */
+    opacity: 0.6;
+    border-style: dashed;
+    background-color: #93c5fd; /* Lighter blue when dragging */
+    color: #1e3a8a; /* Darker text for contrast */
+}
+
+.drop-target {
+    padding: 10px;
+    margin: 10px 0; /* Vertical margin for targets */
+    background-color: #f0f9ff; /* Tailwind sky-50 */
+    border: 2px dashed #7dd3fc; /* Tailwind sky-300 */
+    border-radius: 6px;
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.drop-target .target-label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #0c4a6e; /* Tailwind sky-800 */
+    font-size: 1em;
+}
+
+.drop-target .dropped-items-area {
+    width: 100%;
+    min-height: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5px 0; /* Padding for items inside */
+}
+
+/* Style for items when they are inside a drop target */
+.drop-target .draggable-item {
+    background-color: #a7f3d0; /* Tailwind green-200 */
+    border-color: #34d399; /* Tailwind green-400 */
+    color: #065f46; /* Tailwind green-800 */
+    cursor: default; /* No longer grabby */
+    margin-top: 5px;
+    width: calc(100% - 10px); /* Fit within target padding */
+}
+
+.drop-target.drag-over { /* Class when dragging over a drop target */
+    background-color: #e0f2fe; /* Tailwind sky-100, lighter */
+    border-color: #38bdf8; /* Tailwind sky-400, more prominent */
+    border-style: solid;
+}
+
+/* Specifically for the source container when it's a drop target */
+#draggable-container.drop-target {
+    background-color: #eef2f9; /* Light neutral color */
+    border-color: #d1d5db; /* Neutral border */
+}
+#draggable-container.drop-target.drag-over {
+    background-color: #e5e7eb; /* Slightly darker neutral */
+    border-color: #9ca3af;
+}
+
+/* Ensure items returned to source container adopt original draggable item styling */
+#draggable-container > .draggable-item {
+    background-color: #60a5fa;
+    color: white;
+    border: 1px solid #3b82f6;
+    cursor: grab;
+}
+#draggable-container > .draggable-item:hover {
+    background-color: #3b82f6;
+}

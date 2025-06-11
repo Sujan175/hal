@@ -18,11 +18,13 @@ def render_quiz_question(question_data: dict) -> str:
         # Ensure the 'question' variable is passed to the template,
         # which matches the variable name used in mcq_question.html
         return render_template('mcq_question.html', question=question_data)
+    elif question_type == "DAD":
+        return render_template('dad_question.html', question=question_data)
     else:
         # Log this occurrence for debugging or monitoring
         # import logging
         # logging.warning(f"Unsupported question type encountered: {question_type}")
-        return f"<p>Unsupported question type: {question_type}</p>"
+        return f"<p>Unsupported question type: {question_type}. Data: {question_data}</p>"
 
 if __name__ == '__main__':
     # This part won't run correctly without a Flask app context for render_template.
