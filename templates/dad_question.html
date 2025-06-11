@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Drag and Drop Question{% endblock %}
+
+{% block content %}
+<h2>{{ question.question_text }}</h2>
+
+<form action="{{ url_for('submit_answer') }}" method="POST" id="dad-form">
+    <input type="hidden" name="question_id" value="{{ question.id }}">
+    <input type="hidden" name="question_type" value="DAD">
+    <input type="hidden" name="dad_answers" id="dad_answers_input" value="">
+
+    <div class="dad-container">
+        <div id="draggable-container" class="draggable-section drop-target" data-target-value="source_container">
+            <h3>Draggable Items</h3>
+            {% for item in question.draggable_items %}
+            {# Ensure unique ID for each draggable item and store its value #}
+            <div class="draggable-item" draggable="true" id="drag-{{ question.id }}-{{ loop.index0 }}" data-item-value="{{ item }}">
+                {{ item }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="droptarget-container" class="droptarget-section">
+            <h3>Drop Targets</h3>
+            {% for target in question.drop_targets %}
+            {# data-target-value will hold the string value of the target #}
+            <div class="drop-target" data-target-value="{{ target }}">
+                <span class="target-label">{{ target }}</span>
+                <div class="dropped-items-area">
+                    {# Draggable items will be appended here by JS #}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <button type="submit" class="button">Submit Answer</button>
+</form>
+
+<script src="{{ url_for('static', filename='js/drag_drop.js') }}"></script>
+{% endblock %}

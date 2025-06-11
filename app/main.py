@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, session, redirect, url_for
-from .llm_integration import generate_quiz_question
+from .llm_integration import generate_quiz_question, DragAndDropQuestion # Added DragAndDropQuestion
 from .rendering_engine import render_quiz_question
+import json # Added json import
 
 app = Flask(__name__)
 # It's crucial to set a secret key for session management.
@@ -55,34 +56,97 @@ def submit_answer():
     """
     current_question = session.get('current_question')
     if not current_question:
-        return redirect(url_for('index')) # No active question
+        return redirect(url_for('index'))
 
-    selected_answer = request.form.get('answer')
     submitted_question_id = request.form.get('question_id')
+    question_type = request.form.get('question_type', current_question.get('question_type')) # Get type from form or session
 
-    # Basic validation
-    if not selected_answer or not submitted_question_id:
-        # Handle incomplete form submission, perhaps redirect back to the question
-        # For now, redirecting to index or showing an error might be suitable
-        session['feedback'] = "Please select an answer."
-        return redirect(url_for('show_feedback'))
+    if not submitted_question_id or submitted_question_id != current_question.get('id'):
+        session['feedback'] = "There was an issue with the question submission. Please try again."
+        return redirect(url_for('index'))
 
+    feedback_message = "No feedback generated."
 
-    if submitted_question_id != current_question.get('id'):
-        # Question ID mismatch, could be an old tab or session issue
-        session['feedback'] = "There was an issue with the question. Please try the current one."
-        # Potentially regenerate question or redirect to index
-        return redirect(url_for('index')) # Or a specific error page
+    if question_type == "MCQ":
+        selected_answer = request.form.get('answer')
+        if not selected_answer:
+            session['feedback'] = "Please select an answer for the MCQ."
+            # Redirect to show_feedback, which will re-render the question
+            return redirect(url_for('show_feedback'))
 
-    is_correct = (selected_answer == current_question.get('correct_answer'))
-
-    if is_correct:
-        session['feedback'] = "Correct!"
-    else:
+        is_correct = (selected_answer == current_question.get('correct_answer'))
         explanation = current_question.get('explanation', 'No explanation provided.')
         correct_ans_text = current_question.get('correct_answer', 'N/A')
-        session['feedback'] = f"Incorrect. The correct answer was: {correct_ans_text}. Explanation: {explanation}"
 
+        if is_correct:
+            feedback_message = f"Correct! {explanation}"
+        else:
+            feedback_message = f"Incorrect. The correct answer was: {correct_ans_text}. Explanation: {explanation}"
+
+    elif question_type == "DAD":
+        user_dad_answers_json = request.form.get('dad_answers')
+        try:
+            user_matches = json.loads(user_dad_answers_json) if user_dad_answers_json else {}
+        except json.JSONDecodeError:
+            user_matches = {}
+            logger.error(f"Error decoding DAD answers JSON: {user_dad_answers_json} for question ID {submitted_question_id}")
+            session['feedback'] = "There was an error processing your DAD answers. Please try again."
+            return redirect(url_for('show_feedback'))
+
+        correct_matches = current_question.get('correct_matches', {})
+        if not correct_matches:
+            logger.error(f"No correct_matches found in session for DAD question ID {submitted_question_id}")
+            session['feedback'] = "Could not evaluate DAD question: missing correct answer data."
+            return redirect(url_for('show_feedback'))
+
+        num_correct = 0
+        num_total_possible = len(correct_matches)
+        feedback_details = []
+
+        # Iterate through all draggable items defined in the question to check their status
+        all_draggable_items = current_question.get('draggable_items', [])
+
+        for item in all_draggable_items:
+            correct_target = correct_matches.get(item) # Target where this item SHOULD be
+            user_target = user_matches.get(item)       # Target where user PLACED this item
+
+            if correct_target: # This item is part of the defined correct matches
+                if user_target == correct_target:
+                    num_correct += 1
+                    feedback_details.append(f"<li>Correct: '{item}' &rarr; '{correct_target}'</li>")
+                elif user_target: # User placed it, but on the wrong target
+                    feedback_details.append(f"<li>Incorrect: '{item}' placed on '{user_target}', should be '{correct_target}'</li>")
+                else: # User did not place this item on any target
+                    feedback_details.append(f"<li>Missed: '{item}' should go to '{correct_target}'</li>")
+            elif user_target: # Item is a distractor and user placed it
+                 feedback_details.append(f"<li>Distractor: '{item}' placed on '{user_target}' (this item had no correct target).</li>")
+            # If an item is a distractor and not placed, it's implicitly correct, so no feedback for it.
+
+        # Refine feedback message
+        if num_total_possible == 0 and not all_draggable_items : # Should not happen with valid questions
+             feedback_message = "This DAD question seems to be empty or misconfigured."
+        elif num_correct == num_total_possible and num_total_possible > 0 :
+            feedback_message = f"Excellent! All {num_total_possible} matches are correct."
+            if feedback_details:
+                 feedback_message += "<ul>" + "".join(feedback_details) + "</ul>"
+        elif num_correct > 0:
+            feedback_message = f"Good effort! You got {num_correct} out of {num_total_possible} primary matches correct."
+            if feedback_details:
+                 feedback_message += "<ul>" + "".join(feedback_details) + "</ul>"
+        else: # num_correct == 0 (and num_total_possible > 0)
+            feedback_message = f"Needs improvement. None of the {num_total_possible} primary matches were correct."
+            if feedback_details:
+                 feedback_message += "<ul>" + "".join(feedback_details) + "</ul>"
+
+        explanation = current_question.get('explanation')
+        if explanation:
+            feedback_message += f"<p><strong>Overall Explanation:</strong> {explanation}</p>"
+
+    else:
+        feedback_message = "Unsupported question type encountered during submission."
+        logger.warning(f"Unsupported question type '{question_type}' for question ID {submitted_question_id}")
+
+    session['feedback'] = feedback_message
     return redirect(url_for('show_feedback'))
 
 
@@ -133,3 +197,29 @@ if __name__ == '__main__':
     # Note: Using host='0.0.0.0' makes the app accessible externally if needed.
     # Port 5001 is used as specified previously.
     app.run(debug=True, host='0.0.0.0', port=5001)
+
+
+# Temporary test route for DAD rendering
+@app.route('/test_dad_render')
+def test_dad_render():
+    sample_dad_question = DragAndDropQuestion(
+        id="dad_test_1",
+        topic="Animals",
+        question_text="Match the animal to its primary sound:",
+        question_type="DAD", # Ensure this is set if not relying on default
+        draggable_items=["Dog", "Cat", "Cow", "Duck"],
+        drop_targets=["Barks", "Meows", "Moos", "Quacks"],
+        correct_matches={"Dog": "Barks", "Cat": "Meows", "Cow": "Moos", "Duck": "Quacks"},
+        explanation="These are common sounds made by these animals."
+    )
+    question_dict = sample_dad_question.model_dump()
+
+    # Render the question using the existing engine
+    # The engine will then select 'dad_question.html'
+    question_html = render_quiz_question(question_dict)
+
+    # For a more complete page view, embed it within quiz_page.html or similar
+    # For now, returning raw HTML is fine for quick inspection,
+    # but to see it with styles, better to render a full page.
+    # return question_html
+    return render_template('quiz_page.html', question_html=question_html, feedback="Test DAD Question")
