@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Select a Quiz Topic{% endblock %}
+
+{% block content %}
+    <h2>Select a Quiz Topic</h2>
+    <form action="{{ url_for('start_quiz') }}" method="POST" class="topic-form">
+        <div>
+            <label for="topic">Enter Topic:</label>
+            <input type="text" id="topic" name="topic" required>
+        </div>
+        <button type="submit" class="button">Start Quiz</button>
+    </form>
+{% endblock %}

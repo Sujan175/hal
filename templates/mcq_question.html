@@ -1,0 +1,15 @@
+<div class="mcq-question">
+    <h2>{{ question.question_text }}</h2>
+    <form action="/submit_answer" method="POST">
+        <input type="hidden" name="question_id" value="{{ question.id }}">
+        <ul>
+            {% for option in question.options %}
+            <li>
+                <input type="radio" id="option_{{ loop.index }}" name="answer" value="{{ option }}" required>
+                <label for="option_{{ loop.index }}">{{ option }}</label>
+            </li>
+            {% endfor %}
+        </ul>
+        <button type="submit">Submit Answer</button>
+    </form>
+</div>

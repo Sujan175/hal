@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Time!{% endblock %}
+
+{% block content %}
+    <h2>Quiz Time!</h2>
+
+    {% if feedback %}
+    <div class="feedback
+        {% if 'Incorrect' in feedback %}feedback-incorrect
+        {% elif 'Correct' in feedback %}feedback-correct
+        {% else %}feedback-neutral{% endif %}">
+        <p>{{ feedback }}</p>
+    </div>
+    {% endif %}
+
+    {% if question_html %}
+    <div id="question-container">
+        {{ question_html|safe }}
+    </div>
+    {% else %}
+    <p>No question loaded. Please start a new quiz.</p>
+    {% endif %}
+
+    <div class="navigation-buttons">
+        {% if session.current_question %}
+            <a href="{{ url_for('next_question') }}" class="button next-button">Next Question</a>
+        {% endif %}
+        <a href="{{ url_for('index') }}" class="button back-button">Back to Topic Selection</a>
+    </div>
+{% endblock %}
